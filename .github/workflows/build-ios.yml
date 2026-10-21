@@ -13,22 +13,24 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 22
 
       - name: Install dependencies
-        run: npm ci
+        working-directory: frontend
+        run: npm install
 
       - name: Build Web App
+        working-directory: frontend
         run: npm run build
 
       - name: Sync Capacitor iOS
+        working-directory: frontend
         run: npx cap sync ios
 
       - name: Build Xcode Archive
         run: |
           xcodebuild archive \
-            -workspace ios/App/App.xcworkspace \
+            -workspace frontend/ios/App/App.xcworkspace \
             -scheme App \
             -configuration Release \
             -archivePath build/openGym.xcarchive \
@@ -44,7 +46,4 @@ jobs:
           zip -r openGym.ipa Payload
 
       - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: openGym-ipa
-          path: open
+        uses: actions/
