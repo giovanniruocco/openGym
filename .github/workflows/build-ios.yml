@@ -15,38 +15,54 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install frontend dependencies
+      - name: Install and Build Frontend
         working-directory: frontend
-        run: npm install
-
-      - name: Build Web App
-        working-directory: frontend
-        run: npm run build
+        run: |
+          npm install
+          npm run build
 
       - name: Sync Capacitor iOS
         working-directory: frontend
-        run: npx cap sync ios
-
-      - name: Install CocoaPods dependencies
-        working-directory: ios/App
-        run: pod install
+        run: |
+          if [ ! -d "ios" ]; then
+            npx cap add ios
+          fi
+          npx cap sync ios
 
       - name: Build Xcode Archive
+        working-directory: frontend/ios/App
         run: |
-          xcodebuild archive \
-            -workspace ios/App/App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -archivePath build/openGym.xcarchive \
-            -destination "generic/platform=iOS" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+          if [ -f "Podfile" ]; then
+            pod install
+          fi
+          if [ -d "App.xcworkspace" ]; then
+            xcodebuild archive \
+              -workspace App.xcworkspace \
+              -scheme App \
+              -configuration Release \
+              -archivePath "$RUNNER_TEMP/openGym.xcarchive" \
+              -destination "generic/platform=iOS" \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGN_IDENTITY="" \
+              AD_HOC_CODE_SIGNING_ALLOWED=YES
+          else
+            xcodebuild archive \
+              -project App.xcodeproj \
+              -scheme App \
+              -configuration Release \
+              -archivePath "$RUNNER_TEMP/openGym.xcarchive" \
+              -destination "generic/platform=iOS" \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGN_IDENTITY="" \
+              AD_HOC_CODE_SIGNING_ALLOWED=YES
+          fi
 
       - name: Package IPA
         run: |
           mkdir -p Payload
-          cp -r build/openGym.xcarchive/Products/Applications/App.app Payload/
+          cp -r "$RUNNER_TEMP/openGym.xcarchive/Products/Applications/App.app" Payload/
           zip -r openGym.ipa Payload
 
       - name: Upload IPA Artifact
