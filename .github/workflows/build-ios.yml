@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         working-directory: frontend
         run: npm install
 
@@ -27,10 +27,14 @@ jobs:
         working-directory: frontend
         run: npx cap sync ios
 
+      - name: Install CocoaPods dependencies
+        working-directory: ios/App
+        run: pod install
+
       - name: Build Xcode Archive
         run: |
           xcodebuild archive \
-            -workspace frontend/ios/App/App.xcworkspace \
+            -workspace ios/App/App.xcworkspace \
             -scheme App \
             -configuration Release \
             -archivePath build/openGym.xcarchive \
@@ -46,4 +50,7 @@ jobs:
           zip -r openGym.ipa Payload
 
       - name: Upload IPA Artifact
-        uses: actions/
+        uses: actions/upload-artifact@v4
+        with:
+          name: openGym-ipa
+          path: openGym.ipa
